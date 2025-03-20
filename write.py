@@ -25,12 +25,19 @@ def write_new_current_accounts(accounts, file_path):
             if acc['balance'] > 99999.99 or acc['balance'] < 0:
                 raise ValueError(f"Balance out of range: {acc['balance']}")
 
+            # Validate total_transactions
+            if 'total_transactions' not in acc:
+                acc['total_transactions'] = 0  # Default to 0 if missing
+            if not isinstance(acc['total_transactions'], int) or acc['total_transactions'] < 0:
+                raise ValueError(f"Invalid transaction count: {acc['total_transactions']}")
+
             # Format fields
             acc_num = acc['account_number'].zfill(5)
             name = acc['name'].ljust(20)[:20]
             balance = f"{acc['balance']:08.2f}"
+            transactions = str(acc['total_transactions']).zfill(4)
 
-            file.write(f"{acc_num} {name} {acc['status']} {balance}\n")
-        
+            file.write(f"{acc_num} {name} {acc['status']} {balance} {transactions}\n")
+
         # Add END_OF_FILE marker
-        file.write("00000 END_OF_FILE          A 00000.00\n")
+        file.write("00000 END_OF_FILE          A 00000.00 0000\n")

@@ -63,4 +63,4 @@ def get_account(account_number: str) -> dict | None:
         if acc["account_number"] == account_number:
             return acc
     
-    return None  # Account not found
+    return None 
