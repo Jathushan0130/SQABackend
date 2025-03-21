@@ -2,26 +2,36 @@ from read import read_old_bank_accounts
 from write import write_new_current_accounts
 from print_error import log_constraint_error
 
-def create_account(account_number: str, name: str, balance: float, account_type: str) -> bool:
-    """Creates a new account if it doesn't already exist."""
+def create_account(account_number: str, name: str, balance: float) -> bool:
+    """Creates a new admin or standard account interactively."""
     accounts = read_old_bank_accounts("currentaccounts.txt")  # Load existing accounts
+
+    # Ask user for account type
+    account_type_input = input("Enter account type (admin / standard): ").strip().lower()
+    if account_type_input == "admin":
+        account_type = "admin"
+    elif account_type_input == "standard":
+        account_type = "basic"
+    else:
+        log_constraint_error("Account Creation", f"Invalid account type: {account_type_input}")
+        return False
 
     if any(acc["account_number"] == account_number for acc in accounts):
         log_constraint_error("Account Creation", f"Account {account_number} already exists")
-        return False  # Account already exists
-    
+        return False
+
     new_account = {
         "account_number": account_number,
         "name": name,
         "balance": balance,
         "account_type": account_type,
-        "status": "A"
+        "status": "A",
+        "total_transactions": 0
     }
 
-    accounts.append(new_account)  # Add new account
-    write_new_current_accounts(accounts, "currentaccounts.txt")  # Save updated accounts
-    return True  # Success
-
+    accounts.append(new_account)
+    write_new_current_accounts(accounts, "currentaccounts.txt")
+    return True
 
 def delete_account(account_number: str) -> bool:
     """Deletes an account if it exists."""
