@@ -83,8 +83,8 @@ if __name__ == "__main__":
     from account_management import create_account
 
     print("\nCreating test accounts...")
-    create_account("12345", "User One", 500.00, "basic")
-    create_account("67890", "User Two", 300.00, "basic")
+    create_account("12345", "11111", "User One", 500.00, "basic")
+    create_account("67890", "22222", "User Two", 300.00, "basic")
 
     print("Reading all accounts...")
     accounts = read_old_bank_accounts(FILE_PATH)
