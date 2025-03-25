@@ -1,4 +1,5 @@
 from read import read_old_bank_accounts
+from typing import Optional, Tuple
 from write import write_new_current_accounts
 from print_error import log_constraint_error
 from authsystem import login, is_admin
@@ -14,7 +15,7 @@ class AccountManager:
     def log_transaction(self, transaction_type, description):
         print(f"SUCCESS: {transaction_type}: {description}")
 
-    def get_admin_credentials(self) -> 'tuple[str, str]' | None:
+    def get_admin_credentials(self) -> Optional[Tuple[str, str]]:
         admin_acc = input("Enter your admin account number: ").strip()
         admin_name = input("Enter your admin account name: ").strip()
         admin_user = login(admin_acc, admin_name, active_required=True)
