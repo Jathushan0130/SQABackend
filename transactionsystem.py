@@ -2,6 +2,7 @@ from read import read_old_bank_accounts
 from write import write_new_current_accounts
 from print_error import log_constraint_error
 from authsystem import login
+from transactionlogger import TransactionLogger
 
 FILE_PATH = "currentaccounts.txt"
 
@@ -10,6 +11,7 @@ class TransactionSystem:
         self.session_withdraw_total = 0.0
         self.session_transfer_total = 0.0
         self.session_bill_total = 0.0
+        self.logger = TransactionLogger() 
 
     def log_transaction(self, transaction_type, description):
         print(f"SUCCESS: {transaction_type}: {description}")
@@ -49,10 +51,18 @@ class TransactionSystem:
             return False
 
         matching_account["balance"] -= amount
+        # Re-read full accounts list and update the balance for persistence.
         accounts = read_old_bank_accounts(FILE_PATH)
+        normalized = account_number.lstrip('0') or '0'
+        for acc in accounts:
+            if acc["account_number"] == normalized:
+                acc["balance"] = matching_account["balance"]
+                break
         write_new_current_accounts(accounts, FILE_PATH)
         self.session_withdraw_total += amount
         self.log_transaction("Withdraw", f"{amount} withdrawn from account {account_number}")
+        # Log the transaction with code "01" and misc "WD"
+        self.logger.log_transaction("01", holder_name, account_number, amount, "SP")
         return True
 
     def interactive_transfer(self) -> bool:
@@ -105,6 +115,8 @@ class TransactionSystem:
         write_new_current_accounts(accounts, FILE_PATH)
         self.session_transfer_total += amount
         self.log_transaction("Transfer", f"{amount} transferred from account {from_account} to account {to_account}")
+        # Log the transaction with code "02" and misc "TR"
+        self.logger.log_transaction("02", holder_name, from_account, amount, "SP")
         return True
 
     def interactive_pay_bill(self) -> bool:
@@ -151,11 +163,18 @@ class TransactionSystem:
             log_constraint_error("Pay Bill", "Insufficient funds in account")
             return False
 
-        accounts = read_old_bank_accounts(FILE_PATH)
         matching_account["balance"] -= amount
+        accounts = read_old_bank_accounts(FILE_PATH)
+        normalized = account_number.lstrip('0') or '0'
+        for acc in accounts:
+            if acc["account_number"] == normalized:
+                acc["balance"] = matching_account["balance"]
+                break
         write_new_current_accounts(accounts, FILE_PATH)
         self.session_bill_total += amount
         self.log_transaction("Pay Bill", f"Paid {amount} to {company} from account {account_number}")
+        # Log with code "03" and misc "PB"
+        self.logger.log_transaction("03", holder_name, account_number, amount, "SP")
         return True
 
     def interactive_deposit(self) -> bool:
@@ -183,15 +202,17 @@ class TransactionSystem:
             return False
 
         self.log_transaction("Deposit", f"Recorded deposit of {amount} to account {account_number}. Funds will be available next session.")
+        # Log with code "04" and misc "DP"
+        self.logger.log_transaction("04", holder_name, account_number, amount, "SP")
         return True
 
     def interactive_change_plan(self) -> bool:
         """
         Change the transaction payment plan for an account.
-        - Prompts for account holder’s name and account number.
-        - Uses login() to verify the account.
-        - Only allowed if the account is on a student plan (SP) and the user is an admin.
-        - Changes the account’s payment plan from student (SP) to non-student (NP).
+          - Prompts for account holder’s name and account number.
+          - Uses login() to verify the account.
+          - Only allowed if the account is on a student plan (SP) and the user is an admin.
+          - Changes the account’s payment plan from student (SP) to non-student (NP).
         """
         print("=== Change Transaction Payment Plan ===")
         if input("Are you logged in as admin? (y/n): ").strip().lower() != 'y':
@@ -208,17 +229,15 @@ class TransactionSystem:
             log_constraint_error("Change Plan", "Account is not on a student plan (SP)")
             return False
 
-        # Update the account's type locally.
         matching_account["account_type"] = "NP"
-        # Re-read the full accounts list and update the target account.
         accounts = read_old_bank_accounts(FILE_PATH)
         normalized = account_number.lstrip('0') or '0'
         for acc in accounts:
             if acc["account_number"] == normalized:
                 acc["account_type"] = "NP"
                 break
-
         write_new_current_accounts(accounts, FILE_PATH)
         self.log_transaction("Change Plan", f"Account {account_number} payment plan changed to non-student (NP)")
+        # Log with code "08" and misc "CP"
+        self.logger.log_transaction("08", holder_name, account_number, 0.0, "NP")
         return True
-

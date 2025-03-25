@@ -1,8 +1,9 @@
-from read import read_old_bank_accounts
-from print_error import log_constraint_error
+from transactionlogger import TransactionLogger
 
 def login(account_number: str, name: str, active_required: bool = True) -> dict | None:
-    # Normalize the account number by stripping leading zeros.
+    # (Existing code – unchanged)
+    from read import read_old_bank_accounts
+    from print_error import log_constraint_error
     normalized = account_number.lstrip('0') or '0'
     accounts = read_old_bank_accounts("currentaccounts.txt")
     for acc in accounts:
@@ -15,18 +16,16 @@ def login(account_number: str, name: str, active_required: bool = True) -> dict 
     return None
 
 def is_admin(account_number: str) -> bool:
-    """
-    Since the file format doesn't store account_type, we'll assume that the
-    sample admin account has normalized account number "1" and name "Admin".
-    """
+    from read import read_old_bank_accounts
     normalized = account_number.lstrip('0') or '0'
     accounts = read_old_bank_accounts("currentaccounts.txt")
     for acc in accounts:
         if acc["account_number"] == normalized:
-            # Check if this account is the sample admin account.
             if normalized == "1" and acc.get("name") == "Admin":
                 return True
     return False
 
 def logout() -> None:
-    pass
+    # Finalize the transaction log file (simulate download)
+    logger = TransactionLogger()
+    logger.end_session()

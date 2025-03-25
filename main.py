@@ -1,61 +1,85 @@
 from accountmanagement import AccountManager
 from transactionsystem import TransactionSystem
 from read import read_old_bank_accounts
+from transactionlogger import TransactionLogger
 
 FILE_PATH = "currentaccounts.txt"
 
 def main():
     am = AccountManager()
     ts = TransactionSystem()
-    
+
+    # Create sample admin account.
+    print("\n--- Creating Sample Admin Account ---")
     am.create_sample_account()
-    
-    print("=== Account Management ===")
-    if am.create_account():
-        print("Account creation succeeded.\n")
-    else:
-        print("Account creation failed.\n")
-        
-    if am.delete_account():
-        print("Account deletion succeeded.\n")
-    else:
-        print("Account deletion failed.\n")
-    
-    if am.disable_account():
-        print("Account disable succeeded.\n")
-    else:
-        print("Account disable failed.\n")
-        
-    print("=== Current Accounts ===")
+
+    # Create an active standard account.
+    print("\n--- TEST: Create Active Standard Account (ActiveUser) ---")
+    input_sequence = iter([
+        'y', '00001', 'Admin',   # Admin login for account creation.
+        'ActiveUser', '10001', 'basic', '1500.00'
+    ])
+    input_backup = __builtins__.input
+    __builtins__.input = lambda _: next(input_sequence)
+    am.create_account()
+    __builtins__.input = input_backup
+
+    # Create a standard account that will later be disabled.
+    print("\n--- TEST: Create Standard Account for Disabled Test (DisabledUser) ---")
+    input_sequence = iter([
+        'y', '00001', 'Admin',   # Admin login for account creation.
+        'DisabledUser', '10002', 'basic', '2000.00'
+    ])
+    __builtins__.input = lambda _: next(input_sequence)
+    am.create_account()
+    __builtins__.input = input_backup
+
+    # Disable the account for testing disabled behavior.
+    print("\n--- TEST: Disable Standard Account (DisabledUser) ---")
+    input_sequence = iter([
+        'y', '00001', 'Admin',   # Admin login for disabling account.
+        'DisabledUser', '10002'
+    ])
+    __builtins__.input = lambda _: next(input_sequence)
+    am.disable_account()
+    __builtins__.input = input_backup
+
+    # Display all accounts after modifications.
+    print("\n--- TEST: View Accounts After Admin Changes ---")
     accounts = read_old_bank_accounts(FILE_PATH)
     for acc in accounts:
         print(acc)
-        
-    print("\n=== Transaction System ===")
-    if ts.interactive_withdraw():
-        print("Withdrawal succeeded.\n")
-    else:
-        print("Withdrawal failed.\n")
-        
-    if ts.interactive_transfer():
-        print("Transfer succeeded.\n")
-    else:
-        print("Transfer failed.\n")
-        
-    if ts.interactive_pay_bill():
-        print("Pay Bill succeeded.\n")
-    else:
-        print("Pay Bill failed.\n")
-        
-    if ts.interactive_deposit():
-        print("Deposit recorded successfully.\n")
-    else:
-        print("Deposit failed.\n")
-        
-    if ts.interactive_change_plan():
-        print("Change Plan succeeded.\n")
-    else:
-        print("Change Plan failed.\n")
+
+    # Test a transaction on the active standard account (should succeed).
+    print("\n--- TEST: Withdraw with Active Standard Account (ActiveUser) ---")
+    input_sequence = iter([
+        'n', 'ActiveUser', '10001',  # ActiveUser is still active.
+        '500'
+    ])
+    __builtins__.input = lambda _: next(input_sequence)
+    ts.interactive_withdraw()
+    __builtins__.input = input_backup
+
+    # Test a transaction on the disabled account (should fail).
+    print("\n--- TEST: Withdraw with Disabled Account (DisabledUser, Should Fail) ---")
+    input_sequence = iter([
+        'n', 'DisabledUser', '10002',  # DisabledUser is inactive; login should fail.
+        '500'
+    ])
+    __builtins__.input = lambda _: next(input_sequence)
+    ts.interactive_withdraw()
+    __builtins__.input = input_backup
+
+    # End the session and log the transaction log end-of-session marker.
+    print("\n--- Ending Session: Logging Transactions ---")
+    logger = TransactionLogger()
+    logger.end_session()
+
+    # Final account list.
+    print("\n--- Final Account List ---")
+    final_accounts = read_old_bank_accounts(FILE_PATH)
+    for acc in final_accounts:
+        print(acc)
 
 if __name__ == "__main__":
     main()
