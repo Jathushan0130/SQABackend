@@ -23,6 +23,12 @@ class AccountManager:
             log_constraint_error("Admin Authentication", "Invalid admin credentials or account is not an admin.")
             return None
         return admin_acc, admin_name
+    
+    def increment_transaction_counter(self, account_number: str, accounts: list) -> None:
+        for acc in accounts:
+            if acc['account_number'] == account_number:
+                acc['total_transactions'] += 1
+                break
 
     def create_sample_account(self) -> bool:
         accounts = read_old_bank_accounts(FILE_PATH)
@@ -44,6 +50,8 @@ class AccountManager:
             self.new_accounts.add("00001")
             self.log_transaction("Create Account", "Sample admin account (00001) created for Admin with balance 1000.00")
             self.logger.log_transaction("05", "Admin", "00001", 1000.00, "SP")
+            self.increment_transaction_counter("00001", accounts)
+            write_new_current_accounts(accounts, FILE_PATH)
         except Exception as e:
             print(f"Failed to write accounts file: {e}")
             return False
@@ -103,6 +111,8 @@ class AccountManager:
         self.new_accounts.add(account_number)
         self.log_transaction("Create Account", f"Account {account_number} ({acc_type}) created for {name} with balance {balance}.")
         self.logger.log_transaction("05", name, account_number, balance, "SP")
+        self.increment_transaction_counter(account_number, accounts)
+        write_new_current_accounts(accounts, FILE_PATH)  # Re-write with updated counter
         print("Note: This account will not be available for transactions until the next session.")
         return True
 
@@ -135,6 +145,9 @@ class AccountManager:
         write_new_current_accounts(updated_accounts, FILE_PATH)
         self.log_transaction("Delete Account", f"Account {target_account_number} for {target_name} deleted.")
         self.logger.log_transaction("06", target_name, target_account_number, 0.0, "SP")
+        # Increment before deletion
+        self.increment_transaction_counter(target_account_number, accounts)
+        write_new_current_accounts(updated_accounts, FILE_PATH)  # Already done after removal
         return True
 
     def disable_account(self) -> bool:
@@ -166,6 +179,7 @@ class AccountManager:
             log_constraint_error("Disable Account", "Target account not found.")
             return False
 
+        self.increment_transaction_counter(target_account_number, accounts)
         write_new_current_accounts(accounts, FILE_PATH)
         self.log_transaction("Disable Account", f"Account {target_account_number} for {target_name} disabled.")
         self.logger.log_transaction("07", target_name, target_account_number, 0.0, "SP")
