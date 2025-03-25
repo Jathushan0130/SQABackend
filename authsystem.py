@@ -1,6 +1,7 @@
 from transactionlogger import TransactionLogger
+from typing import Optional
 
-def login(account_number: str, name: str, active_required: bool = True) -> dict | None:
+def login(account_number: str, name: str, active_required: bool = True) -> Optional[dict]:
     # (Existing code – unchanged)
     from read import read_old_bank_accounts
     from print_error import log_constraint_error
