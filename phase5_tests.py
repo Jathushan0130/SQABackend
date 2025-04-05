@@ -8,19 +8,17 @@ class TestPrintError(unittest.TestCase):
     def test_log_constraint_error_withdraw(self):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             log_constraint_error("Withdraw", "Insufficient funds")
-            self.assertIn("ERROR: Withdraw: Insufficient funds", fake_out.getvalue())
+            self.assertIn("ERROR: Insufficient funds: Withdraw", fake_out.getvalue())
 
     def test_log_constraint_error_auth(self):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             log_constraint_error("Authentication", "Account not found")
-            self.assertIn("ERROR: Authentication: Account not found", fake_out.getvalue())
+            self.assertIn("ERROR: Account not found: Authentication", fake_out.getvalue())
 
     def test_log_constraint_error_delete(self):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             log_constraint_error("Delete Account", "Target name mismatch")
-            self.assertIn("ERROR: Delete Account: Target name mismatch", fake_out.getvalue())
-
-
+            self.assertIn("ERROR: Target name mismatch: Delete Account", fake_out.getvalue())
 class TestWithdrawDecisionLoopCoverage(unittest.TestCase):
     @patch('builtins.input')
     @patch('transactionsystem.login')
@@ -38,12 +36,17 @@ class TestWithdrawDecisionLoopCoverage(unittest.TestCase):
             'balance': 200,
             'account_type': 'basic'
         }
-        mock_read.return_value = [
-            {'account_number': '10001', 'balance': 200}
-        ]
+        mock_read.return_value = [{'account_number': '10001', 'balance': 200}]
 
         result = ts.interactive_withdraw()
+        print("READ MOCK RETURN VALUE:", mock_read.return_value) # To check what is being read
         self.assertTrue(result)
+        mock_read.assert_called_once()
+        mock_write.assert_called_once()
+
+        # Check if balance was updated to 100
+        written_accounts = mock_write.call_args[0][0]
+        self.assertEqual(written_accounts[0]['balance'], 100)
 
     @patch('builtins.input')
     @patch('transactionsystem.login', return_value=None)
@@ -99,12 +102,16 @@ class TestWithdrawDecisionLoopCoverage(unittest.TestCase):
             'balance': 1000,
             'account_type': 'admin'
         }
-        mock_read.return_value = [
-            {'account_number': '00001', 'balance': 1000}
-        ]
+        mock_read.return_value = [{'account_number': '1', 'balance': 1000}]  # 00001 normalized to '1'
 
         result = ts.interactive_withdraw()
         self.assertTrue(result)
+        mock_read.assert_called_once()
+        mock_write.assert_called_once()
+
+        # Confirm balance was updated
+        written_accounts = mock_write.call_args[0][0]
+        self.assertEqual(written_accounts[0]['balance'], 900)
 
 
 if __name__ == '__main__':
