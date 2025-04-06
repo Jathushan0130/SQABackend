@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch, mock_open
 from io import StringIO
+from accountmanagement import AccountManager
 from print_error import log_constraint_error
 from read import read_old_bank_accounts
 from write import write_new_current_accounts
@@ -191,6 +192,90 @@ class TestTransactionSystem(unittest.TestCase):
         mock_input.side_effect = ['n', 'User', '12345', '50']
         mock_login.return_value = {'account_number': '12345', 'name': 'User', 'status': 'A'}
         self.assertTrue(ts.interactive_deposit())
+        
+class TestTransactionSystemEdgeCases(unittest.TestCase):
+    @patch("transactionsystem.input")
+    @patch("transactionsystem.login")
+    def test_withdraw_exceeds_session_limit(self, mock_login, mock_input):
+        ts = TransactionSystem()
+        ts.session_withdraw_total = 450
+        mock_input.side_effect = ['n', 'User', '12345', '100']
+        mock_login.return_value = {
+            'account_number': '12345', 'name': 'User', 'status': 'A',
+            'balance': 1000, 'account_type': 'basic'
+        }
+        with patch("transactionsystem.read_old_bank_accounts", return_value=[{'account_number': '12345', 'balance': 1000}]):
+            with patch("transactionsystem.write_new_current_accounts"):
+                result = ts.interactive_withdraw()
+                self.assertFalse(result)
+
+    @patch("transactionsystem.input")
+    @patch("transactionsystem.login")
+    def test_transfer_invalid_destination(self, mock_login, mock_input):
+        ts = TransactionSystem()
+        mock_input.side_effect = ['n', 'User', '12345', '99999', '50']
+        mock_login.return_value = {
+            'account_number': '12345', 'name': 'User', 'status': 'A',
+            'balance': 500, 'account_type': 'basic'
+        }
+        with patch("transactionsystem.read_old_bank_accounts", return_value=[{'account_number': '12345', 'balance': 500}]):
+            with patch("transactionsystem.write_new_current_accounts"):
+                result = ts.interactive_transfer()
+                self.assertFalse(result)
+
+    @patch("transactionsystem.input")
+    @patch("transactionsystem.login")
+    def test_change_plan_not_student(self, mock_login, mock_input):
+        ts = TransactionSystem()
+        mock_input.side_effect = ['y', 'User', '12345']
+        mock_login.return_value = {
+            'account_number': '12345', 'name': 'User', 'status': 'A',
+            'account_type': 'NP'
+        }
+        with patch("transactionsystem.read_old_bank_accounts", return_value=[{'account_number': '12345', 'account_type': 'NP'}]):
+            with patch("transactionsystem.write_new_current_accounts"):
+                result = ts.interactive_change_plan()
+                self.assertFalse(result)
+
+class TestAccountManagement(unittest.TestCase):
+    @patch("accountmanagement.input")
+    @patch("accountmanagement.login")
+    @patch("accountmanagement.is_admin", return_value=True)
+    @patch("accountmanagement.read_old_bank_accounts")
+    @patch("accountmanagement.write_new_current_accounts")
+    def test_create_account_duplicate_number(self, mock_write, mock_read, mock_is_admin, mock_login, mock_input):
+        am = AccountManager()
+        mock_input.side_effect = ['y', '00001', 'Admin', 'Test User', '12345', 'basic', '1000.00']
+        mock_read.return_value = [{'account_number': '12345'}]
+        mock_login.return_value = {'account_number': '00001', 'name': 'Admin', 'status': 'A', 'account_type': 'admin'}
+        result = am.create_account()
+        self.assertFalse(result)
+
+    @patch("accountmanagement.input")
+    @patch("accountmanagement.login")
+    @patch("accountmanagement.is_admin", return_value=True)
+    @patch("accountmanagement.read_old_bank_accounts")
+    @patch("accountmanagement.write_new_current_accounts")
+    def test_disable_account_success(self, mock_write, mock_read, mock_is_admin, mock_login, mock_input):
+        am = AccountManager()
+        mock_input.side_effect = ['y', '00001', 'Admin', 'TargetUser', '12345']
+        mock_read.return_value = [{'account_number': '12345', 'name': 'TargetUser', 'status': 'A', 'total_transactions': 0}]
+        mock_login.return_value = {'account_number': '00001', 'name': 'Admin', 'status': 'A', 'account_type': 'admin'}
+        result = am.disable_account()
+        self.assertTrue(result)
+
+    @patch("accountmanagement.input")
+    @patch("accountmanagement.login")
+    @patch("accountmanagement.is_admin", return_value=True)
+    @patch("accountmanagement.read_old_bank_accounts")
+    @patch("accountmanagement.write_new_current_accounts")
+    def test_delete_account_name_mismatch(self, mock_write, mock_read, mock_is_admin, mock_login, mock_input):
+        am = AccountManager()
+        mock_input.side_effect = ['y', '00001', 'Admin', 'WrongName', '12345']
+        mock_read.return_value = [{'account_number': '12345', 'name': 'CorrectName', 'status': 'A', 'total_transactions': 0}]
+        mock_login.return_value = {'account_number': '00001', 'name': 'Admin', 'status': 'A', 'account_type': 'admin'}
+        result = am.delete_account()
+        self.assertFalse(result)
 
 if __name__ == "__main__":
     unittest.main()
