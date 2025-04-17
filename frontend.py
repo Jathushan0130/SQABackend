@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+import sys
 from accountmanagement import AccountManager
 from transactionsystem import TransactionSystem
 from authsystem import login, is_admin
@@ -18,13 +20,13 @@ def welcome():
     print("Default Standard: number=00002, name=Standard\n")
 
 def prompt_login():
-    # first choose role
+    # pick role
     while True:
         role = input("Login as (admin/standard)? ").strip().lower()
         if role in ("admin", "standard"):
             break
         print("Please enter 'admin' or 'standard'.")
-    # then prompt credentials
+    # credentials
     while True:
         acc_num = input("Account Number: ").strip()
         name    = input("Account Name  : ").strip()
@@ -54,16 +56,22 @@ def print_menu(is_admin_user):
     return input("Enter choice: ").strip()
 
 def main():
-    clear_data()
+    batch = not sys.stdin.isatty()
 
-    # Create built-in sample accounts before login
-    am = AccountManager()
-    am.create_sample_account()
+    if not batch:
+        # interactive (or first run in shell): reset + seed
+        clear_data()
+        am = AccountManager()
+        am.create_sample_account()
+        welcome()
+        user = prompt_login()
+    else:
+        # batch mode: do _not_ clear or reseed
+        user = prompt_login()
+        am = AccountManager()
 
-    welcome()
-    user = prompt_login()
-    admin_flag = is_admin(user['account_number'])
     ts = TransactionSystem()
+    admin_flag = is_admin(user['account_number'])
 
     while True:
         choice = print_menu(admin_flag)
@@ -93,7 +101,7 @@ def main():
         else:
             print("⚠ Invalid choice or insufficient privileges.\n")
 
-    # Final summary
+    # End of session
     print("\n--- Final Account List ---")
     for acc in read_old_bank_accounts(FILE_PATH):
         print(acc)
