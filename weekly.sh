@@ -1,22 +1,19 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-echo "📅 Starting full weekly banking simulation..."
-rm -f day*_current.txt day*_merged_log.txt
+for day in {1..7}; do
+  echo
+  echo "########## Day $day ##########"
+  ./daily.sh
 
-for day in {1..7}
-do
-    echo ""
-    echo "============================="
-    echo "📆 DAY $day"
-    echo "============================="
+  # Archive this day’s end‑of‑day accounts and merged transactions
+  cp currentaccounts.txt               currentaccounts_day${day}.txt
+  cp merged_daily_transactions.txt merged_transactions_day${day}.txt
 
-    ./daily.sh
-
-    cp currentaccounts.txt day${day}_current.txt
-    cp merged_transaction_log.txt day${day}_merged_log.txt
-
-    echo "📦 Day $day saved: day${day}_current.txt and day${day}_merged_log.txt"
+  echo "Archived Day $day →"
+  echo "  currentaccounts_day${day}.txt"
+  echo "  merged_transactions_day${day}.txt"
 done
 
-echo ""
-echo "✅ Weekly simulation complete. All 7 days logged."
+echo
+echo "=== Weekly run (7 days) complete ==="

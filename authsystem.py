@@ -12,6 +12,8 @@ def login(account_number: str, name: str, active_required: bool = True) -> Optio
             if active_required and acc["status"] != "A":
                 log_constraint_error("Authentication", f"Account {account_number} is not active.")
                 return None
+            from authsystem import is_admin
+            acc['account_type'] = 'admin' if is_admin(normalized) else 'basic'
             return acc
     log_constraint_error("Authentication", f"Account {account_number} not found or name mismatch.")
     return None

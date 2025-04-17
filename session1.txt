@@ -1,0 +1,12 @@
+admin
+00001
+Admin
+1
+y
+00001
+Admin
+NewUser1
+30001
+basic
+1000.00
+0

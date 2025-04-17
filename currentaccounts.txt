@@ -1,1 +1,3 @@
-
+00001 Admin                A 10000.00 0001 NP
+00002 Standard             A 05000.00 0001 NP
+00000 END_OF_FILE          A 00000.00 0000 NP

@@ -1,0 +1,9 @@
+standard
+00002
+Standard
+4
+n
+Standard
+00002
+100.00
+0

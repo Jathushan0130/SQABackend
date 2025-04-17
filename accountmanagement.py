@@ -32,29 +32,49 @@ class AccountManager:
 
     def create_sample_account(self) -> bool:
         accounts = read_old_bank_accounts(FILE_PATH)
-        if any(acc["account_number"] == "1" for acc in accounts):
-            print("Sample admin account already exists.")
-            return True
+        created = False
 
-        sample_account = {
-            "account_number": "00001",
-            "name": "Admin",
-            "balance": 1000.00,
-            "account_type": "admin",
-            "status": "A",
-            "total_transactions": 0
-        }
-        accounts.append(sample_account)
-        try:
-            write_new_current_accounts(accounts, FILE_PATH)
+        # ensure sample Admin exists
+        if not any(acc["account_number"] == "1" for acc in accounts):
+            sample_admin = {
+                "account_number": "00001",
+                "name":           "Admin",
+                "balance":        10000.00,
+                "account_type":   "admin",
+                "status":         "A",
+                "total_transactions": 0
+            }
+            accounts.append(sample_admin)
             self.new_accounts.add("00001")
-            self.log_transaction("Create Account", "Sample admin account (00001) created for Admin with balance 1000.00")
-            self.logger.log_transaction("05", "Admin", "00001", 1000.00, "SP")
+            self.log_transaction("Create Account",
+                                 "Sample admin account (00001) created for Admin with balance 10000.00")
+            self.logger.log_transaction("05", "Admin", "00001", 10000.00, "SP")
             self.increment_transaction_counter("00001", accounts)
+            created = True
+
+        # ensure sample Standard exists
+        if not any(acc["account_number"] == "2" for acc in accounts):
+            sample_standard = {
+                "account_number":      "00002",
+                "name":                "Standard",
+                "balance":             5000.00,
+                "account_type":        "basic",
+                "status":              "A",
+                "total_transactions":  0
+            }
+            accounts.append(sample_standard)
+            self.new_accounts.add("00002")
+            self.log_transaction("Create Account",
+                                 "Sample standard account (00002) created for Standard with balance 5000.00")
+            self.logger.log_transaction("05", "Standard", "00002", 5000.00, "SP")
+            self.increment_transaction_counter("00002", accounts)
+            created = True
+
+        if created:
             write_new_current_accounts(accounts, FILE_PATH)
-        except Exception as e:
-            print(f"Failed to write accounts file: {e}")
-            return False
+        else:
+            print("Sample accounts already exist.")
+            return True
 
         accounts_after = read_old_bank_accounts(FILE_PATH)
         print("Accounts after sample account creation:")
@@ -112,7 +132,7 @@ class AccountManager:
         self.log_transaction("Create Account", f"Account {account_number} ({acc_type}) created for {name} with balance {balance}.")
         self.logger.log_transaction("05", name, account_number, balance, "SP")
         self.increment_transaction_counter(account_number, accounts)
-        write_new_current_accounts(accounts, FILE_PATH)  # Re-write with updated counter
+        write_new_current_accounts(accounts, FILE_PATH)
         print("Note: This account will not be available for transactions until the next session.")
         return True
 
@@ -145,9 +165,8 @@ class AccountManager:
         write_new_current_accounts(updated_accounts, FILE_PATH)
         self.log_transaction("Delete Account", f"Account {target_account_number} for {target_name} deleted.")
         self.logger.log_transaction("06", target_name, target_account_number, 0.0, "SP")
-        # Increment before deletion
         self.increment_transaction_counter(target_account_number, accounts)
-        write_new_current_accounts(updated_accounts, FILE_PATH)  # Already done after removal
+        write_new_current_accounts(updated_accounts, FILE_PATH)
         return True
 
     def disable_account(self) -> bool:

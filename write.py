@@ -35,11 +35,12 @@ def write_new_current_accounts(accounts, file_path):
 
             # Format fields
             acc_num = acc['account_number'].zfill(5)
-            name = acc['name'].ljust(20)[:20]
+            name    = acc['name'].ljust(20)[:20]
             balance = f"{acc['balance']:08.2f}"
+            txns    = f"{acc.get('total_transactions', 0):04d}"
 
-            # Write line (37 chars + plan type = 39 chars total)
-            file.write(f"{acc_num} {name} {acc['status']} {balance} {plan}\n")
+            # Write line (45 chars total)
+            file.write(f"{acc_num} {name} {acc['status']} {balance} {txns} {plan}\n")
         
-        # Add END_OF_FILE marker
-        file.write("00000 END_OF_FILE          A 00000.00 NP\n")
+        # Add END_OF_FILE marker (now exactly 45 chars)
+        file.write("00000 END_OF_FILE          A 00000.00 0000 NP\n")
